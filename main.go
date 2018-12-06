@@ -94,16 +94,17 @@ func getCommitHash(gci *model.GitCommitInfo) int {
 	return headMax
 }
 
-func getReflogHash(gci *model.GitCommitInfo) {
+func getReflogHash() ([]string, error) {
+	var ReflogHashList []string
 	out, err := exec.Command("git", "reflog", "--format=%h").Output()
 	if err != nil {
 		log.Error(err)
-		os.Exit(1)
+		return nil, err
 	}
-
 	for _, v := range regexp.MustCompile("\r\n|\n|\r").Split(string(out), -1) {
-		gci.ReflogHashList = append(gci.ReflogHashList, v)
+		ReflogHashList = append(ReflogHashList, v)
 	}
+	return ReflogHashList, nil
 }
 
 func getCommitMessage(gci *model.GitCommitInfo, specifiedMsg string) {
@@ -125,7 +126,12 @@ func checkCurrentCommit(f bool, beginNumber int, endNumber int, gci *model.GitCo
 	var sNum = strconv.Itoa(beginNumber)
 
 	headMax := getCommitHash(gci)
-	getReflogHash(gci)
+	Out, err := getReflogHash()
+	if err != nil {
+		os.Exit(1)
+	}
+	gci.ReflogHashList = Out
+
 	getCommitMessage(gci, specifiedMsg)
 	rangeValidation(headMax, beginNumber, endNumber)
 
